@@ -1,0 +1,320 @@
+
+<h2 class="sr-only">Customer segmentation dashboard showing four behavioral and demographic segments with charts for cluster distribution, purchase behavior, and demographic breakdowns.</h2>
+
+<style>
+:root {
+  --seg-a: #1D9E75; --seg-b: #7F77DD; --seg-c: #D85A30; --seg-d: #BA7517;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px 16px; }
+.metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+.metric-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 16px 18px; }
+.card-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+.seg-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; }
+.seg-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.seg-row:last-child { border-bottom: none; }
+.seg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.seg-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+.seg-pct { font-size: 13px; color: var(--color-text-secondary); min-width: 36px; text-align: right; }
+.bar-wrap { flex: 2; height: 6px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; }
+.radar-label { font-size: 11px; fill: var(--color-text-secondary); }
+.trait-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.trait-label { font-size: 12px; color: var(--color-text-secondary); width: 90px; flex-shrink: 0; }
+.trait-bar-wrap { flex: 1; height: 8px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; }
+.trait-bar { height: 100%; border-radius: 99px; }
+.trait-val { font-size: 12px; color: var(--color-text-primary); min-width: 30px; text-align: right; }
+.tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+.tab { font-size: 12px; padding: 4px 12px; border-radius: 99px; cursor: pointer; border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); background: transparent; transition: all 0.15s; }
+.tab.active { color: var(--color-text-primary); background: var(--color-background-secondary); border-color: var(--color-border-primary); }
+.insight-chip { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); margin-bottom: 8px; }
+.insight-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.insight-text { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+.insight-text strong { color: var(--color-text-primary); font-weight: 500; }
+.scatter-point { cursor: pointer; transition: r 0.15s; }
+.scatter-point:hover { r: 8; }
+canvas { display: block; }
+</style>
+
+<div style="padding: 1rem 0;">
+
+<div class="grid-4">
+  <div class="metric">
+    <div class="metric-label">Total customers</div>
+    <div class="metric-value">12,480</div>
+    <div class="metric-sub">+8.2% this quarter</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Avg. order value</div>
+    <div class="metric-value">$184</div>
+    <div class="metric-sub">Across all segments</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Segments</div>
+    <div class="metric-value">4</div>
+    <div class="metric-sub">K-Means (k=4)</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Silhouette score</div>
+    <div class="metric-value">0.71</div>
+    <div class="metric-sub">Good separation</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">Cluster distribution</div>
+    <div class="seg-row">
+      <div class="seg-dot" style="background:#1D9E75"></div>
+      <div class="seg-name">High-Value Loyalists</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:32%;background:#1D9E75"></div></div>
+      <div class="seg-pct">32%</div>
+    </div>
+    <div class="seg-row">
+      <div class="seg-dot" style="background:#7F77DD"></div>
+      <div class="seg-name">Occasional Browsers</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:28%;background:#7F77DD"></div></div>
+      <div class="seg-pct">28%</div>
+    </div>
+    <div class="seg-row">
+      <div class="seg-dot" style="background:#D85A30"></div>
+      <div class="seg-name">Price-Sensitive Buyers</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:24%;background:#D85A30"></div></div>
+      <div class="seg-pct">24%</div>
+    </div>
+    <div class="seg-row">
+      <div class="seg-dot" style="background:#BA7517"></div>
+      <div class="seg-name">New &amp; Exploratory</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:16%;background:#BA7517"></div></div>
+      <div class="seg-pct">16%</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Spend vs frequency scatter (sample)</div>
+    <svg id="scatter" viewBox="0 0 320 200" width="100%" style="overflow:visible">
+      <line x1="40" y1="10" x2="40" y2="165" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <line x1="40" y1="165" x2="315" y2="165" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="34" y="168" text-anchor="end" font-size="9" fill="var(--color-text-secondary)">0</text>
+      <text x="34" y="110" text-anchor="end" font-size="9" fill="var(--color-text-secondary)">20</text>
+      <text x="34" y="60" text-anchor="end" font-size="9" fill="var(--color-text-secondary)">40</text>
+      <text x="34" y="20" text-anchor="end" font-size="9" fill="var(--color-text-secondary)">60</text>
+      <text x="178" y="185" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">Avg monthly spend ($)</text>
+      <text x="12" y="90" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)" transform="rotate(-90,12,90)">Purchase freq.</text>
+      <!-- High-Value Loyalists -->
+      <circle cx="260" cy="25" r="6" fill="#1D9E75" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="280" cy="35" r="6" fill="#1D9E75" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="250" cy="40" r="6" fill="#1D9E75" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="295" cy="20" r="6" fill="#1D9E75" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="270" cy="50" r="6" fill="#1D9E75" fill-opacity="0.75" class="scatter-point"/>
+      <!-- Occasional Browsers -->
+      <circle cx="130" cy="100" r="6" fill="#7F77DD" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="150" cy="115" r="6" fill="#7F77DD" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="115" cy="95" r="6" fill="#7F77DD" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="160" cy="105" r="6" fill="#7F77DD" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="140" cy="90" r="6" fill="#7F77DD" fill-opacity="0.75" class="scatter-point"/>
+      <!-- Price-Sensitive -->
+      <circle cx="80" cy="130" r="6" fill="#D85A30" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="100" cy="125" r="6" fill="#D85A30" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="70" cy="140" r="6" fill="#D85A30" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="90" cy="115" r="6" fill="#D85A30" fill-opacity="0.75" class="scatter-point"/>
+      <!-- New & Exploratory -->
+      <circle cx="65" cy="155" r="6" fill="#BA7517" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="80" cy="158" r="6" fill="#BA7517" fill-opacity="0.75" class="scatter-point"/>
+      <circle cx="55" cy="150" r="6" fill="#BA7517" fill-opacity="0.75" class="scatter-point"/>
+    </svg>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;">
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block;"></span>High-Value</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:8px;height:8px;border-radius:50%;background:#7F77DD;display:inline-block;"></span>Occasional</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:8px;height:8px;border-radius:50%;background:#D85A30;display:inline-block;"></span>Price-Sensitive</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:8px;height:8px;border-radius:50%;background:#BA7517;display:inline-block;"></span>New</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">Segment deep-dive</div>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-seg="0">High-Value</button>
+      <button class="tab" data-seg="1">Occasional</button>
+      <button class="tab" data-seg="2">Price-Sensitive</button>
+      <button class="tab" data-seg="3">New</button>
+    </div>
+    <div id="seg-detail"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Purchase channel mix</div>
+    <div style="position:relative;height:200px;width:100%">
+      <canvas id="channelChart" role="img" aria-label="Bar chart of purchase channels per segment. Online dominates for High-Value and New segments; in-store is highest for Price-Sensitive.">Channel distribution varies by segment.</canvas>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#1D9E75;display:inline-block;"></span>Online</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#7F77DD;display:inline-block;"></span>In-Store</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#D85A30;display:inline-block;"></span>Mobile App</span>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-title">Age &amp; income distribution by segment</div>
+  <div style="position:relative;height:180px;width:100%">
+    <canvas id="demoChart" role="img" aria-label="Grouped bar chart showing median age and income index per segment. High-Value customers are oldest with highest income; New customers are youngest.">Demographic breakdown by segment.</canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Key insights &amp; recommended actions</div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+    <div class="insight-chip">
+      <i class="ti ti-crown insight-icon" aria-hidden="true" style="color:#1D9E75"></i>
+      <div class="insight-text"><strong>High-Value Loyalists</strong> drive 58% of revenue despite being 32% of customers. Prioritize VIP retention programs and early access offers.</div>
+    </div>
+    <div class="insight-chip">
+      <i class="ti ti-tag insight-icon" aria-hidden="true" style="color:#D85A30"></i>
+      <div class="insight-text"><strong>Price-Sensitive Buyers</strong> respond 3× better to discount campaigns. Bundle deals and loyalty points can shift them up-funnel.</div>
+    </div>
+    <div class="insight-chip">
+      <i class="ti ti-moon insight-icon" aria-hidden="true" style="color:#7F77DD"></i>
+      <div class="insight-text"><strong>Occasional Browsers</strong> have high cart-abandonment. Re-engagement emails with personalized product picks can lift conversion by ~22%.</div>
+    </div>
+    <div class="insight-chip">
+      <i class="ti ti-seedling insight-icon" aria-hidden="true" style="color:#BA7517"></i>
+      <div class="insight-text"><strong>New &amp; Exploratory</strong> customers are growing fastest (+31%). Onboarding flows and first-purchase incentives are critical conversion levers.</div>
+    </div>
+  </div>
+  <button style="margin-top:14px;width:100%;padding:8px;" onclick="sendPrompt('Generate a detailed marketing strategy for each of the four customer segments')">Generate targeted marketing strategies ↗</button>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const segments = [
+  {
+    name: "High-Value Loyalists",
+    color: "#1D9E75",
+    traits: [
+      { label: "Avg spend", val: 420, pct: 95 },
+      { label: "Frequency", val: 52, pct: 90 },
+      { label: "Recency", val: 3, pct: 88 },
+      { label: "Satisfaction", val: 4.7, pct: 94 },
+      { label: "Churn risk", val: "Low", pct: 10 },
+    ],
+    age: "38–52", income: "High", channel: "Online / App"
+  },
+  {
+    name: "Occasional Browsers",
+    color: "#7F77DD",
+    traits: [
+      { label: "Avg spend", val: 145, pct: 35 },
+      { label: "Frequency", val: 18, pct: 30 },
+      { label: "Recency", val: 22, pct: 45 },
+      { label: "Satisfaction", val: 3.8, pct: 60 },
+      { label: "Churn risk", val: "Med", pct: 55 },
+    ],
+    age: "25–40", income: "Medium", channel: "Online / Email"
+  },
+  {
+    name: "Price-Sensitive Buyers",
+    color: "#D85A30",
+    traits: [
+      { label: "Avg spend", val: 68, pct: 20 },
+      { label: "Frequency", val: 24, pct: 42 },
+      { label: "Recency", val: 15, pct: 60 },
+      { label: "Satisfaction", val: 3.4, pct: 48 },
+      { label: "Churn risk", val: "Med-Hi", pct: 65 },
+    ],
+    age: "28–45", income: "Low–Med", channel: "In-Store"
+  },
+  {
+    name: "New & Exploratory",
+    color: "#BA7517",
+    traits: [
+      { label: "Avg spend", val: 52, pct: 14 },
+      { label: "Frequency", val: 4, pct: 8 },
+      { label: "Recency", val: 8, pct: 75 },
+      { label: "Satisfaction", val: 3.9, pct: 63 },
+      { label: "Churn risk", val: "Hi", pct: 78 },
+    ],
+    age: "18–30", income: "Variable", channel: "Mobile App"
+  }
+];
+
+function renderSegDetail(idx) {
+  const s = segments[idx];
+  let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+    <span style="width:10px;height:10px;border-radius:50%;background:${s.color};display:inline-block;"></span>
+    <span style="font-size:14px;font-weight:500;color:var(--color-text-primary);">${s.name}</span>
+  </div>`;
+  s.traits.forEach(t => {
+    html += `<div class="trait-row">
+      <div class="trait-label">${t.label}</div>
+      <div class="trait-bar-wrap"><div class="trait-bar" style="width:${t.pct}%;background:${s.color}80;"></div></div>
+      <div class="trait-val">${t.val}</div>
+    </div>`;
+  });
+  html += `<div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--color-text-secondary);">
+    <span><i class="ti ti-users" aria-hidden="true"></i> Age: ${s.age}</span>
+    <span><i class="ti ti-wallet" aria-hidden="true"></i> ${s.income}</span>
+    <span><i class="ti ti-device-mobile" aria-hidden="true"></i> ${s.channel}</span>
+  </div>`;
+  document.getElementById('seg-detail').innerHTML = html;
+}
+
+renderSegDetail(0);
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderSegDetail(parseInt(btn.dataset.seg));
+});
+
+new Chart(document.getElementById('channelChart'), {
+  type: 'bar',
+  data: {
+    labels: ['High-Value', 'Occasional', 'Price-Sensitive', 'New'],
+    datasets: [
+      { label: 'Online', data: [68, 55, 22, 60], backgroundColor: '#1D9E75', borderRadius: 3 },
+      { label: 'In-Store', data: [18, 28, 58, 20], backgroundColor: '#7F77DD', borderRadius: 3 },
+      { label: 'Mobile App', data: [14, 17, 20, 20], backgroundColor: '#D85A30', borderRadius: 3 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, color: '#888' } },
+      y: { stacked: true, grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { font: { size: 11 }, color: '#888', callback: v => v + '%' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('demoChart'), {
+  type: 'bar',
+  data: {
+    labels: ['High-Value', 'Occasional', 'Price-Sensitive', 'New'],
+    datasets: [
+      { label: 'Median age', data: [44, 32, 36, 24], backgroundColor: '#7F77DD', borderRadius: 3 },
+      { label: 'Income index', data: [82, 55, 38, 45], backgroundColor: '#1D9E75', borderRadius: 3, borderDash: [4,2] },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#888' } },
+      y: { grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { font: { size: 11 }, color: '#888' } }
+    }
+  }
+});
+</script>
