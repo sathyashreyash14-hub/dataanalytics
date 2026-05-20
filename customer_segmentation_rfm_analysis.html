@@ -1,0 +1,230 @@
+
+<h2 class="sr-only">Customer Segmentation RFM Analysis — interactive dashboard showing recency, frequency, and monetary scoring with segment breakdowns, scatter plot, and actionable cohort insights</h2>
+<style>
+*{box-sizing:border-box;}
+.r{font-family:var(--font-sans);padding:1.5rem 0;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:1.5rem;}
+.hdr h1{font-size:22px;font-weight:500;color:var(--color-text-primary);margin:0 0 3px;}
+.hdr p{font-size:13px;color:var(--color-text-secondary);margin:0;}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;}
+.mc{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;}
+.mc-l{font-size:12px;color:var(--color-text-secondary);margin:0 0 4px;}
+.mc-v{font-size:22px;font-weight:500;color:var(--color-text-primary);margin:0;}
+.mc-d{font-size:12px;color:var(--color-text-tertiary);margin:2px 0 0;}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1.5rem;}
+.ctrl label{font-size:13px;color:var(--color-text-secondary);}
+.seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;}
+.sc{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;}
+.sc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.sc-name{font-size:13px;font-weight:500;color:var(--color-text-primary);}
+.badge{display:inline-block;padding:2px 8px;border-radius:var(--border-radius-md);font-size:11px;font-weight:500;}
+.sc-count{font-size:22px;font-weight:500;margin:0 0 2px;}
+.sc-pct{font-size:12px;color:var(--color-text-secondary);margin:0 0 8px;}
+.sc-bar-bg{background:var(--color-background-secondary);border-radius:3px;height:6px;}
+.sc-bar{height:6px;border-radius:3px;transition:width 0.5s;}
+.sc-rec{font-size:12px;color:var(--color-text-secondary);margin:8px 0 0;line-height:1.5;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;}
+.panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;}
+.panel-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 12px;}
+.rfm-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.rfm-lbl{font-size:13px;color:var(--color-text-secondary);width:90px;flex-shrink:0;}
+.rfm-track{flex:1;background:var(--color-background-secondary);border-radius:4px;height:10px;}
+.rfm-fill{height:10px;border-radius:4px;}
+.rfm-val{font-size:13px;font-weight:500;color:var(--color-text-primary);width:28px;text-align:right;flex-shrink:0;}
+.heatrow{display:flex;gap:4px;margin-bottom:4px;align-items:center;}
+.heatcell{width:36px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;}
+.heat-lbl{font-size:11px;color:var(--color-text-tertiary);width:60px;flex-shrink:0;}
+.heat-hdr{font-size:11px;color:var(--color-text-tertiary);width:36px;text-align:center;}
+.scatter-wrap{position:relative;width:100%;height:280px;margin-bottom:1.5rem;}
+.leg-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem;font-size:12px;color:var(--color-text-secondary);}
+.leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle;}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem;}
+.action-btn{padding:9px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);font-size:13px;cursor:pointer;text-align:left;transition:background 0.15s;}
+.action-btn:hover{background:var(--color-background-secondary);}
+.action-btn i{font-size:15px;vertical-align:-2px;margin-right:6px;}
+</style>
+
+<div class="r">
+<div class="hdr">
+  <div><h1>Customer segmentation — RFM analysis</h1><p>Recency · Frequency · Monetary value scoring across 500 customers</p></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <label style="font-size:13px;color:var(--color-text-secondary);">Score scale</label>
+    <select id="scaleSel" style="font-size:13px;padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);" onchange="render()">
+      <option value="5">1–5 (quintile)</option>
+      <option value="3">1–3 (tertile)</option>
+    </select>
+    <select id="metricSel" style="font-size:13px;padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);" onchange="render()">
+      <option value="count">By customer count</option>
+      <option value="revenue">By revenue</option>
+    </select>
+  </div>
+</div>
+
+<div class="mg">
+  <div class="mc"><p class="mc-l">Total customers</p><p class="mc-v" id="m-total">500</p><p class="mc-d">in dataset</p></div>
+  <div class="mc"><p class="mc-l">Champions</p><p class="mc-v" id="m-champ" style="color:#1D9E75;">—</p><p class="mc-d" id="m-champ-d"></p></div>
+  <div class="mc"><p class="mc-l">At risk</p><p class="mc-v" id="m-risk" style="color:#D85A30;">—</p><p class="mc-d" id="m-risk-d"></p></div>
+  <div class="mc"><p class="mc-l">Avg RFM score</p><p class="mc-v" id="m-avg">—</p><p class="mc-d">out of max</p></div>
+</div>
+
+<div class="seg-grid" id="segGrid"></div>
+
+<div class="two-col">
+  <div class="panel">
+    <p class="panel-title">RFM dimension averages by segment</p>
+    <div id="rfmBars"></div>
+  </div>
+  <div class="panel">
+    <p class="panel-title">Frequency × Recency heatmap</p>
+    <div id="heatmap"></div>
+  </div>
+</div>
+
+<p style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 8px;">Recency vs Monetary scatter — bubble size = frequency</p>
+<div class="leg-row" id="scatterLeg"></div>
+<div class="scatter-wrap"><canvas id="scatterChart" role="img" aria-label="Scatter plot of customer recency vs monetary value, bubble size represents purchase frequency, colored by segment"></canvas></div>
+
+<p style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 10px;">Recommended actions</p>
+<div class="action-grid" id="actionGrid"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SEGMENTS_5=[
+  {name:'Champions',color:'#1D9E75',bg:'#EAF3DE',textColor:'#27500A',rMin:4,fMin:4,mMin:4,rec:'Reward them. They are your best buyers — upsell, ask for reviews.',r:2.1,f:4.8,m:4.6},
+  {name:'Loyal',color:'#185FA5',bg:'#E6F1FB',textColor:'#0C447C',rMin:3,fMin:3,mMin:3,rec:'Offer loyalty programmes and early access to new products.',r:2.8,f:3.9,m:3.8},
+  {name:'Potential',color:'#534AB7',bg:'#EEEDFE',textColor:'#3C3489',rMin:3,fMin:1,mMin:2,rec:'Engage with onboarding emails and frequency nudges.',r:2.4,f:2.1,m:2.9},
+  {name:'At risk',color:'#D85A30',bg:'#FAECE7',textColor:'#712B13',rMin:1,fMin:2,mMin:2,rec:'Send win-back campaigns. Offer a discount before they churn.',r:3.9,f:2.8,m:3.1},
+  {name:'Hibernating',color:'#888780',bg:'#F1EFE8',textColor:'#444441',rMin:1,fMin:1,mMin:1,rec:'Low-cost reactivation emails. Accept higher churn probability.',r:4.6,f:1.3,m:1.4},
+  {name:'New customers',color:'#BA7517',bg:'#FAEEDA',textColor:'#633806',rMin:4,fMin:1,mMin:1,rec:'Onboard carefully. Build habit through welcome series.',r:1.2,f:1.2,m:1.8},
+];
+
+const COUNTS_5=[82,134,91,73,86,34];
+const REVENUE_5=[312000,287000,148000,163000,54000,38000];
+
+const SEGMENTS_3=[
+  {name:'Champions',color:'#1D9E75',bg:'#EAF3DE',textColor:'#27500A',rec:'Reward and retain your top tier.',r:1.2,f:2.9,m:2.8},
+  {name:'Mid-value',color:'#185FA5',bg:'#E6F1FB',textColor:'#0C447C',rec:'Nurture with personalised campaigns.',r:2.1,f:2.0,m:2.1},
+  {name:'At risk / dormant',color:'#D85A30',bg:'#FAECE7',textColor:'#712B13',rec:'Win-back sequences before permanent churn.',r:2.9,f:1.1,m:1.2},
+];
+const COUNTS_3=[168,201,131];
+const REVENUE_3=[597000,348000,57000];
+
+let scatterChart=null;
+
+function render(){
+  const scale=parseInt(document.getElementById('scaleSel').value);
+  const metric=document.getElementById('metricSel').value;
+  const segs=scale===5?SEGMENTS_5:SEGMENTS_3;
+  const counts=scale===5?COUNTS_5:COUNTS_3;
+  const revenues=scale===5?REVENUE_5:REVENUE_3;
+  const vals=metric==='count'?counts:revenues;
+  const totalVal=vals.reduce((a,b)=>a+b,0);
+  const totalCust=counts.reduce((a,b)=>a+b,0);
+
+  document.getElementById('m-total').textContent=totalCust.toLocaleString();
+  const ci=segs.findIndex(s=>s.name==='Champions');
+  document.getElementById('m-champ').textContent=counts[ci].toLocaleString();
+  document.getElementById('m-champ-d').textContent=Math.round(counts[ci]/totalCust*100)+'% of base';
+  const ri=segs.findIndex(s=>s.name.includes('risk')||s.name.includes('At risk'));
+  document.getElementById('m-risk').textContent=counts[ri].toLocaleString();
+  document.getElementById('m-risk-d').textContent=Math.round(counts[ri]/totalCust*100)+'% of base';
+  const avgScore=(segs.reduce((a,s,i)=>a+(s.r+s.f+s.m)/3*counts[i],0)/totalCust).toFixed(2);
+  document.getElementById('m-avg').textContent=avgScore;
+
+  let sg='';
+  segs.forEach((s,i)=>{
+    const pct=Math.round(vals[i]/totalVal*100);
+    const dispVal=metric==='revenue'?'₹'+Math.round(vals[i]/1000)+'K':vals[i].toLocaleString();
+    sg+=`<div class="sc">
+      <div class="sc-top"><span class="sc-name">${s.name}</span><span class="badge" style="background:${s.bg};color:${s.textColor};">${pct}%</span></div>
+      <p class="sc-count" style="color:${s.color};">${dispVal}</p>
+      <p class="sc-pct">${counts[i]} customers</p>
+      <div class="sc-bar-bg"><div class="sc-bar" style="width:${pct}%;background:${s.color};"></div></div>
+      <p class="sc-rec">${s.rec}</p>
+    </div>`;
+  });
+  document.getElementById('segGrid').innerHTML=sg;
+
+  const dims=['Recency (low = recent)','Frequency','Monetary'];
+  const dimKeys=['r','f','m'];
+  const dimColors=['#D85A30','#185FA5','#1D9E75'];
+  let bars='';
+  segs.forEach((s,i)=>{
+    bars+=`<div style="margin-bottom:12px;"><p style="font-size:12px;font-weight:500;color:${s.color};margin:0 0 6px;">${s.name}</p>`;
+    dimKeys.forEach((k,di)=>{
+      const v=s[k];const pct=Math.round((v/(scale===5?5:3))*100);
+      bars+=`<div class="rfm-row" style="margin-bottom:6px;">
+        <span class="rfm-lbl">${dims[di]}</span>
+        <div class="rfm-track"><div class="rfm-fill" style="width:${pct}%;background:${dimColors[di]};"></div></div>
+        <span class="rfm-val">${v.toFixed(1)}</span>
+      </div>`;
+    });
+    bars+='</div>';
+  });
+  document.getElementById('rfmBars').innerHTML=bars;
+
+  const rLabels=scale===5?['1','2','3','4','5']:['1','2','3'];
+  const fLabels=scale===5?['1','2','3','4','5']:['1','2','3'];
+  const heatData=rLabels.map(r=>fLabels.map(f=>{
+    const rv=parseInt(r),fv=parseInt(f),score=(rv+fv);
+    const max=(scale===5?10:6),min=2;
+    return Math.round((score-min)/(max-min)*80+10);
+  }));
+  const hColors=v=>{
+    if(v>70)return{bg:'#9FE1CB',txt:'#085041'};
+    if(v>45)return{bg:'#B5D4F4',txt:'#0C447C'};
+    if(v>25)return{bg:'#FAEEDA',txt:'#633806'};
+    return{bg:'#F5C4B3',txt:'#712B13'};
+  };
+  let heat=`<div class="heatrow"><span class="heat-lbl" style="color:var(--color-text-tertiary);font-size:11px;">R↓ F→</span>`;
+  fLabels.forEach(f=>heat+=`<span class="heat-hdr">${f}</span>`);
+  heat+='</div>';
+  rLabels.forEach((r,ri)=>{
+    heat+=`<div class="heatrow"><span class="heat-lbl">R=${r}</span>`;
+    fLabels.forEach((_,fi)=>{
+      const v=heatData[ri][fi];const c=hColors(v);
+      heat+=`<div class="heatcell" style="background:${c.bg};color:${c.txt};">${v}</div>`;
+    });
+    heat+='</div>';
+  });
+  document.getElementById('heatmap').innerHTML=heat;
+
+  const scatterDatasets=segs.map((s,i)=>{
+    const n=Math.min(counts[i],12);
+    const pts=Array.from({length:n},(_,j)=>{
+      const jitter=v=>v+(Math.random()-0.5)*0.6;
+      return{x:+jitter(s.r).toFixed(2),y:+jitter(s.m).toFixed(2),r:Math.round(4+s.f*2.5)};
+    });
+    return{label:s.name,data:pts,backgroundColor:s.color+'bb',borderColor:s.color,borderWidth:1};
+  });
+
+  document.getElementById('scatterLeg').innerHTML=segs.map(s=>`<span><span class="leg-dot" style="background:${s.color};"></span>${s.name}</span>`).join('');
+
+  if(scatterChart)scatterChart.destroy();
+  const ctx=document.getElementById('scatterChart').getContext('2d');
+  scatterChart=new Chart(ctx,{
+    type:'bubble',
+    data:{datasets:scatterDatasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:16},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`${c.dataset.label} — R:${c.parsed.x.toFixed(1)} M:${c.parsed.y.toFixed(1)}`}}},
+      scales:{
+        x:{title:{display:true,text:'Recency score (lower = more recent)',font:{size:11}},min:0.2,max:(scale===5?5.8:3.8),ticks:{font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'}},
+        y:{title:{display:true,text:'Monetary score',font:{size:11}},min:0.2,max:(scale===5?5.8:3.8),ticks:{font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'}}
+      }
+    }
+  });
+
+  const actions=[
+    {icon:'ti-mail',label:'Draft win-back email for At-risk segment',prompt:'Write a win-back email campaign for customers who haven\'t purchased in 90+ days'},
+    {icon:'ti-chart-bar',label:'Show revenue uplift if Champions churn 10%',prompt:'Calculate the revenue impact if 10% of Champion customers churn'},
+    {icon:'ti-brand-python',label:'Generate Python code for this RFM model',prompt:'Write Python pandas code to calculate RFM scores and segment customers'},
+    {icon:'ti-refresh',label:'How to automate monthly RFM refresh',prompt:'How do I schedule an automated monthly RFM recalculation pipeline?'},
+  ];
+  document.getElementById('actionGrid').innerHTML=actions.map(a=>`<button class="action-btn" onclick="sendPrompt('${a.prompt}')"><i class="ti ${a.icon}" aria-hidden="true"></i>${a.label} ↗</button>`).join('');
+}
+
+render();
+</script>
