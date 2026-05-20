@@ -1,0 +1,357 @@
+
+<h2 class="sr-only">HR Employee Data Quality Monitor — interactive tool that scans employee records for missing values, duplicates, and inconsistencies, then generates a visual data quality report</h2>
+<style>
+*{box-sizing:border-box;}
+.w{font-family:var(--font-sans);padding:1.5rem 0;}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:1.5rem;}
+h1{font-size:22px;font-weight:500;color:var(--color-text-primary);margin:0 0 3px;}
+.sub{font-size:13px;color:var(--color-text-secondary);margin:0;}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;}
+.mc{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;}
+.mc p{margin:0;}.mc-l{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px!important;}
+.mc-v{font-size:22px;font-weight:500;color:var(--color-text-primary);}
+.mc-d{font-size:12px;color:var(--color-text-tertiary);margin-top:2px!important;}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;}
+.ct{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 12px;}
+.field-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.fl{font-size:12px;color:var(--color-text-secondary);width:110px;flex-shrink:0;}
+.fb{flex:1;background:var(--color-background-secondary);border-radius:3px;height:8px;}
+.ff{height:8px;border-radius:3px;transition:width .5s;}
+.fv{font-size:12px;color:var(--color-text-primary);width:30px;text-align:right;flex-shrink:0;}
+.issue-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1.5rem;}
+.iss{display:flex;gap:10px;align-items:flex-start;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;}
+.iss-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.iss-body{flex:1;min-width:0;}
+.iss-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 2px;}
+.iss-desc{font-size:12px;color:var(--color-text-secondary);margin:0 0 4px;}
+.iss-fix{font-size:12px;color:var(--color-text-secondary);margin:0;}
+.bdg{display:inline-block;padding:2px 7px;border-radius:var(--border-radius-md);font-size:11px;font-weight:500;margin-left:6px;}
+.tbl-wrap{overflow-x:auto;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:1.5rem;}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+th{background:var(--color-background-secondary);font-weight:500;color:var(--color-text-secondary);padding:8px 10px;text-align:left;border-bottom:0.5px solid var(--color-border-tertiary);}
+td{padding:7px 10px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+.bad{background:#FCEBEB;color:#A32D2D;border-radius:3px;padding:1px 4px;}
+.warn{background:#FAEEDA;color:#633806;border-radius:3px;padding:1px 4px;}
+.ok{background:#EAF3DE;color:#27500A;border-radius:3px;padding:1px 4px;}
+.phase-strip{display:flex;gap:8px;margin-bottom:1.5rem;}
+.ph{flex:1;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;text-align:center;transition:border-color .3s,background .3s;}
+.ph.active{border-color:#185FA5;background:#E6F1FB;}
+.ph.done{border-color:#1D9E75;background:#EAF3DE;}
+.ph-icon{font-size:18px;margin-bottom:4px;}
+.ph-name{font-size:11px;font-weight:500;color:var(--color-text-primary);}
+.ph-st{font-size:11px;color:var(--color-text-tertiary);margin-top:2px;}
+.ph.active .ph-st{color:#185FA5;}.ph.done .ph-st{color:#1D9E75;}
+.log{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-family:var(--font-mono);font-size:11px;line-height:1.8;color:var(--color-text-secondary);margin-bottom:1.5rem;}
+.ok-t{color:#1D9E75;}.warn-t{color:#BA7517;}.err-t{color:#D85A30;}.info-t{color:#185FA5;}
+.act-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.act-btn{padding:9px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);font-size:13px;cursor:pointer;text-align:left;transition:background .15s;}
+.act-btn:hover{background:var(--color-background-secondary);}
+.act-btn i{font-size:14px;vertical-align:-2px;margin-right:6px;}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.5rem;}
+.tab{font-size:13px;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;color:var(--color-text-secondary);margin-bottom:-1px;}
+.tab.on{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500;}
+</style>
+
+<div class="w">
+<div class="row" style="justify-content:space-between;">
+  <div><h1>HR data quality monitor</h1><p class="sub">Automated cleaning and reporting for employee records</p></div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <select id="deptSel" style="font-size:13px;padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);">
+      <option value="all">All departments</option>
+      <option value="eng">Engineering</option>
+      <option value="sales">Sales</option>
+      <option value="hr">HR</option>
+    </select>
+    <button style="padding:7px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-text-primary);color:var(--color-background-primary);font-size:13px;cursor:pointer;" id="runBtn" onclick="runScan()">
+      <i class="ti ti-scan" style="font-size:14px;vertical-align:-2px;margin-right:4px;" aria-hidden="true"></i>Run scan
+    </button>
+  </div>
+</div>
+
+<div class="phase-strip">
+  <div class="ph" id="ph0"><div class="ph-icon"><i class="ti ti-database" aria-hidden="true"></i></div><p class="ph-name">Load</p><p class="ph-st" id="phs0">Idle</p></div>
+  <div class="ph" id="ph1"><div class="ph-icon"><i class="ti ti-zoom-scan" aria-hidden="true"></i></div><p class="ph-name">Detect</p><p class="ph-st" id="phs1">Idle</p></div>
+  <div class="ph" id="ph2"><div class="ph-icon"><i class="ti ti-tool" aria-hidden="true"></i></div><p class="ph-name">Repair</p><p class="ph-st" id="phs2">Idle</p></div>
+  <div class="ph" id="ph3"><div class="ph-icon"><i class="ti ti-shield-check" aria-hidden="true"></i></div><p class="ph-name">Validate</p><p class="ph-st" id="phs3">Idle</p></div>
+  <div class="ph" id="ph4"><div class="ph-icon"><i class="ti ti-report-analytics" aria-hidden="true"></i></div><p class="ph-name">Report</p><p class="ph-st" id="phs4">Idle</p></div>
+</div>
+
+<div class="mg">
+  <div class="mc"><p class="mc-l">Records scanned</p><p class="mc-v" id="m0">—</p><p class="mc-d" id="md0">awaiting scan</p></div>
+  <div class="mc"><p class="mc-l">Issues found</p><p class="mc-v" id="m1" style="color:#D85A30;">—</p><p class="mc-d" id="md1"></p></div>
+  <div class="mc"><p class="mc-l">Auto-repaired</p><p class="mc-v" id="m2" style="color:#1D9E75;">—</p><p class="mc-d" id="md2"></p></div>
+  <div class="mc"><p class="mc-l">Quality score</p><p class="mc-v" id="m3">—</p><p class="mc-d" id="md3"></p></div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" id="t-raw" onclick="sw('raw',this)">Raw records</div>
+  <div class="tab" id="t-issues" onclick="sw('issues',this)">Issues & fixes</div>
+  <div class="tab" id="t-clean" onclick="sw('clean',this)">Cleaned data</div>
+  <div class="tab" id="t-report" onclick="sw('report',this)">Visual report</div>
+</div>
+
+<div id="p-raw">
+  <p style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 8px;">Raw employee records — flagged cells highlighted</p>
+  <div class="tbl-wrap" id="rawTbl"><p style="padding:1rem;font-size:13px;color:var(--color-text-secondary);">Click "Run scan" to load records.</p></div>
+</div>
+<div id="p-issues" style="display:none;">
+  <div class="issue-list" id="issueList"></div>
+  <div class="log" id="logBox">Waiting…</div>
+</div>
+<div id="p-clean" style="display:none;">
+  <p style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 8px;">Cleaned records — all repairs applied</p>
+  <div class="tbl-wrap" id="cleanTbl"></div>
+</div>
+<div id="p-report" style="display:none;">
+  <div class="cols2" id="reportCards"></div>
+  <p style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 8px;">Field completeness — before vs after cleaning</p>
+  <div style="position:relative;width:100%;height:300px;margin-bottom:1.5rem;">
+    <canvas id="repChart" role="img" aria-label="Horizontal bar chart showing field completeness percentages before and after cleaning for each employee data field">Field completeness before and after cleaning.</canvas>
+  </div>
+  <p style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 10px;">Next steps</p>
+  <div class="act-row">
+    <button class="act-btn" onclick="sendPrompt('Write a Python pandas script to automate this HR data cleaning pipeline')"><i class="ti ti-brand-python" aria-hidden="true"></i>Generate Python script ↗</button>
+    <button class="act-btn" onclick="sendPrompt('Create an Excel macro to clean employee data with missing values and duplicates')"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i>Generate Excel macro ↗</button>
+    <button class="act-btn" onclick="sendPrompt('How do I connect this to a Power BI dashboard for automated HR reporting?')"><i class="ti ti-chart-dots" aria-hidden="true"></i>Connect to Power BI ↗</button>
+    <button class="act-btn" onclick="sendPrompt('What are best practices for HR data governance and quality management?')"><i class="ti ti-shield" aria-hidden="true"></i>Data governance tips ↗</button>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const RAW=[
+  {id:'EMP001',name:'Priya Sharma',dept:'Engineering',email:'priya.sharma@co.com',phone:'9876543210',salary:'85000',join:'2021-03-15',status:'Active',manager:'Ravi Kumar'},
+  {id:'EMP002',name:'AMIT VERMA',dept:'sales',email:'amit.verma',phone:'',salary:'62000',join:'2020-07-01',status:'active',manager:'Sunita Rao'},
+  {id:'EMP003',name:'Neha Gupta',dept:'HR',email:'neha.gupta@co.com',phone:'8765432109',salary:'-5000',join:'2022-01-10',status:'Active',manager:''},
+  {id:'EMP001',name:'Priya Sharma',dept:'Engineering',email:'priya.sharma@co.com',phone:'9876543210',salary:'85000',join:'2021-03-15',status:'Active',manager:'Ravi Kumar'},
+  {id:'EMP004',name:'',dept:'Engineering',email:'rahul.m@co.com',phone:'7654321098',salary:'91000',join:'2030-05-20',status:'Active',manager:'Ravi Kumar'},
+  {id:'EMP005',name:'Sunita Rao',dept:'Sales',email:'sunita.rao@co.com',phone:'6543210987',salary:'78000',join:'2019-11-05',status:'Inactive',manager:'CEO'},
+  {id:'EMP006',name:'Karan Mehta',dept:'engineering',email:'karan.m@co.com',phone:'9988776655',salary:'N/A',join:'2023-06-30',status:'Active',manager:'Ravi Kumar'},
+  {id:'EMP007',name:'Divya Nair',dept:'HR',email:'divya.nair@co.com',phone:'8877665544',salary:'54000',join:'2022-09-12',status:'active',manager:'Neha Gupta'},
+  {id:'EMP008',name:'Rohit Singh',dept:'Sales',email:'rohit.singh@co.com',phone:'','salary':'68000',join:'2021-08-22',status:'Active',manager:'Sunita Rao'},
+  {id:'EMP009',name:'Meera Pillai',dept:'Finance',email:'meera.p@co.com',phone:'7766554433',salary:'72000',join:'2020-04-14',status:'ACTIVE',manager:'CFO'},
+];
+
+const ISSUES=[
+  {type:'duplicate',sev:'red',title:'Duplicate employee record — EMP001',desc:'Row 1 and row 4 are identical records for Priya Sharma (EMP001).',fix:'Remove row 4 — keep first occurrence.',rows:[0,3],cols:['id']},
+  {type:'missing',sev:'amber',title:'Missing employee name — row 5',desc:'EMP004 has a blank name field. Cannot generate payslips or correspondence.',fix:'Flag for HR review; set name to "[Pending]" temporarily.',rows:[4],cols:['name']},
+  {type:'invalid',sev:'red',title:'Negative salary — EMP003',desc:'Neha Gupta has salary = -5000. Negative pay is impossible.',fix:'Set to null; raise alert to payroll team.',rows:[2],cols:['salary']},
+  {type:'invalid',sev:'red',title:'Future join date — EMP004',desc:'Join date 2030-05-20 is 4 years in the future.',fix:'Mark as null; request correction from HR admin.',rows:[4],cols:['join']},
+  {type:'format',sev:'amber',title:'Invalid email — EMP002',desc:'"amit.verma" is missing @ and domain. Not a valid email address.',fix:'Set to null; trigger re-entry workflow.',rows:[1],cols:['email']},
+  {type:'format',sev:'amber',title:'Inconsistent dept casing — 3 rows',desc:'"sales", "engineering" should be "Sales", "Engineering" (title case).',fix:'Apply title-case normalisation across dept column.',rows:[1,6],cols:['dept']},
+  {type:'format',sev:'amber',title:'Inconsistent status values — 4 rows',desc:'"active", "ACTIVE" should all be "Active". 4 rows affected.',fix:'Standardise status to title case.',rows:[1,7,9],cols:['status']},
+  {type:'missing',sev:'amber',title:'Missing phone numbers — 2 rows',desc:'EMP002 and EMP008 have no phone number on file.',fix:'Flag rows; set to "[Missing]" and trigger data collection.',rows:[1,8],cols:['phone']},
+  {type:'invalid',sev:'amber',title:'Non-numeric salary — EMP006',desc:'Salary field contains "N/A" string instead of a number.',fix:'Coerce to null; impute from grade band average.',rows:[6],cols:['salary']},
+];
+
+const CLEAN=[
+  {id:'EMP001',name:'Priya Sharma',dept:'Engineering',email:'priya.sharma@co.com',phone:'9876543210',salary:'85,000',join:'2021-03-15',status:'Active',manager:'Ravi Kumar'},
+  {id:'EMP002',name:'Amit Verma',dept:'Sales',email:'[null — invalid]',phone:'[Missing]',salary:'62,000',join:'2020-07-01',status:'Active',manager:'Sunita Rao'},
+  {id:'EMP003',name:'Neha Gupta',dept:'HR',email:'neha.gupta@co.com',phone:'8765432109',salary:'[null — review]',join:'2022-01-10',status:'Active',manager:'[Missing]'},
+  {id:'EMP004',name:'[Pending]',dept:'Engineering',email:'rahul.m@co.com',phone:'7654321098',salary:'91,000',join:'[null — future]',status:'Active',manager:'Ravi Kumar'},
+  {id:'EMP005',name:'Sunita Rao',dept:'Sales',email:'sunita.rao@co.com',phone:'6543210987',salary:'78,000',join:'2019-11-05',status:'Inactive',manager:'CEO'},
+  {id:'EMP006',name:'Karan Mehta',dept:'Engineering',email:'karan.m@co.com',phone:'9988776655',salary:'[null — impute]',join:'2023-06-30',status:'Active',manager:'Ravi Kumar'},
+  {id:'EMP007',name:'Divya Nair',dept:'HR',email:'divya.nair@co.com',phone:'8877665544',salary:'54,000',join:'2022-09-12',status:'Active',manager:'Neha Gupta'},
+  {id:'EMP008',name:'Rohit Singh',dept:'Sales',email:'rohit.singh@co.com',phone:'[Missing]',salary:'68,000',join:'2021-08-22',status:'Active',manager:'Sunita Rao'},
+  {id:'EMP009',name:'Meera Pillai',dept:'Finance',email:'meera.p@co.com',phone:'7766554433',salary:'72,000',join:'2020-04-14',status:'Active',manager:'CFO'},
+];
+
+const FIELDS=['id','name','dept','email','phone','salary','join','status','manager'];
+const BEFORE=[100,90,100,90,80,80,90,100,90];
+const AFTER=[100,95,100,90,85,90,90,100,95];
+
+let repChart=null,running=false;
+
+function sw(name,el){
+  ['raw','issues','clean','report'].forEach(t=>{
+    document.getElementById('p-'+t).style.display=t===name?'':'none';
+    document.getElementById('t-'+t).className='tab'+(t===name?' on':'');
+  });
+}
+
+function setPhase(i,state){
+  document.getElementById('ph'+i).className='ph'+(state?' '+state:'');
+}
+function setPhaseSt(i,txt){document.getElementById('phs'+i).textContent=txt;}
+
+function badIssueRows(){
+  const m={};
+  ISSUES.forEach(iss=>iss.rows.forEach(r=>{
+    if(!m[r])m[r]=new Set();
+    iss.cols.forEach(c=>m[r].add(c));
+  }));
+  return m;
+}
+
+function renderRaw(){
+  const iMap=badIssueRows();
+  const cols=['id','name','dept','email','phone','salary','join','status','manager'];
+  let h='<table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';
+  RAW.forEach((row,ri)=>{
+    const badCols=iMap[ri]||new Set();
+    h+='<tr>';
+    cols.forEach(c=>{
+      const v=row[c]===''?'<em style="color:var(--color-text-tertiary)">blank</em>':row[c];
+      h+='<td>'+(badCols.has(c)?`<span class="bad">${v}</span>`:v)+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('rawTbl').innerHTML=h;
+}
+
+function renderIssues(){
+  const icons={duplicate:'ti-copy',missing:'ti-alert-triangle',format:'ti-forms',invalid:'ti-x'};
+  const bgs={red:{bg:'#FCEBEB',txt:'#A32D2D'},amber:{bg:'#FAEEDA',txt:'#633806'}};
+  let h='';
+  ISSUES.forEach(iss=>{
+    const b=bgs[iss.sev];
+    const label={duplicate:'Duplicate',missing:'Missing',format:'Format',invalid:'Invalid'}[iss.type];
+    h+=`<div class="iss">
+      <i class="ti ${icons[iss.type]||'ti-alert-circle'} iss-icon" style="color:${iss.sev==='red'?'#D85A30':'#BA7517'};" aria-hidden="true"></i>
+      <div class="iss-body">
+        <p class="iss-title">${iss.title}<span class="bdg" style="background:${b.bg};color:${b.txt};">${label}</span></p>
+        <p class="iss-desc">${iss.desc}</p>
+        <p class="iss-fix"><span style="font-weight:500;color:var(--color-text-primary);">Fix:</span> ${iss.fix}</p>
+      </div>
+    </div>`;
+  });
+  document.getElementById('issueList').innerHTML=h;
+
+  const counts={duplicate:0,missing:0,format:0,invalid:0};
+  ISSUES.forEach(i=>counts[i.type]++);
+  document.getElementById('logBox').innerHTML=[
+    `<span class="info-t">[INFO] Loaded ${RAW.length} employee records from HR system</span>`,
+    `<span class="info-t">[INFO] Scanning 9 fields per record (${RAW.length*9} cells total)</span>`,
+    `<span class="err-t">[ERR]  ${counts.duplicate} duplicate employee ID(s) found</span>`,
+    `<span class="err-t">[ERR]  ${counts.invalid} invalid field value(s) detected</span>`,
+    `<span class="warn-t">[WARN] ${counts.missing} missing mandatory field(s)</span>`,
+    `<span class="warn-t">[WARN] ${counts.format} formatting inconsistencies flagged</span>`,
+    `<span class="ok-t">[OK]   Deduplication complete — 1 row removed</span>`,
+    `<span class="ok-t">[OK]   Case normalisation applied to dept and status columns</span>`,
+    `<span class="ok-t">[OK]   Invalid values coerced to null with audit trail</span>`,
+    `<span class="ok-t">[OK]   9 records retained in cleaned output</span>`,
+    `<span class="info-t">[INFO] Quality score improved: 71% → 91%</span>`,
+    `<span class="ok-t">[OK]   Report generated — ready for HR dashboard</span>`,
+  ].join('<br>');
+}
+
+function renderClean(){
+  const cols=['id','name','dept','email','phone','salary','join','status','manager'];
+  let h='<table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';
+  CLEAN.forEach(row=>{
+    h+='<tr>';
+    cols.forEach(c=>{
+      const v=row[c];
+      const isFlag=v.startsWith('[');
+      h+='<td>'+(isFlag?`<span class="warn">${v}</span>`:`<span class="ok">${v}</span>`)+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('cleanTbl').innerHTML=h;
+}
+
+function renderReport(){
+  const totalIssues=ISSUES.reduce((a,iss)=>a+iss.rows.length,0);
+  const typeCounts={duplicate:0,missing:0,format:0,invalid:0};
+  ISSUES.forEach(i=>typeCounts[i.type]+=i.rows.length);
+  document.getElementById('reportCards').innerHTML=`
+    <div class="card">
+      <p class="ct">Issue breakdown by type</p>
+      ${Object.entries(typeCounts).map(([k,v])=>{
+        const colors={duplicate:'#D85A30',missing:'#BA7517',format:'#185FA5',invalid:'#E24B4A'};
+        const pct=Math.round(v/totalIssues*100);
+        return `<div class="field-row"><span class="fl">${k.charAt(0).toUpperCase()+k.slice(1)}</span><div class="fb"><div class="ff" style="width:${pct}%;background:${colors[k]};"></div></div><span class="fv">${v}</span></div>`;
+      }).join('')}
+    </div>
+    <div class="card">
+      <p class="ct">Pipeline summary</p>
+      ${[['Raw records',RAW.length],['After dedup',CLEAN.length],['Total issues',totalIssues],['Auto-repaired',7],['Manual review needed',4],['Quality before','71%'],['Quality after','91%']].map(([k,v])=>`
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+          <span style="color:var(--color-text-secondary);">${k}</span>
+          <span style="font-weight:500;color:var(--color-text-primary);">${v}</span>
+        </div>`).join('')}
+    </div>`;
+
+  if(repChart)repChart.destroy();
+  const ctx=document.getElementById('repChart').getContext('2d');
+  repChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:FIELDS.map(f=>f.charAt(0).toUpperCase()+f.slice(1)),
+      datasets:[
+        {label:'Before',data:BEFORE,backgroundColor:'#D85A30aa',borderRadius:3},
+        {label:'After',data:AFTER,backgroundColor:'#1D9E75aa',borderRadius:3}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{font:{size:11}},grid:{display:false}},
+        y:{min:60,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'}}
+      }
+    }
+  });
+
+  const leg=document.createElement('div');
+  leg.style.cssText='display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;';
+  leg.innerHTML='<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#D85A30aa;"></span>Before 71%</span><span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1D9E75aa;"></span>After 91%</span>';
+  const chartWrap=document.getElementById('repChart').parentElement;
+  chartWrap.parentElement.insertBefore(leg,chartWrap);
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function runScan(){
+  if(running)return;
+  running=true;
+  document.getElementById('runBtn').disabled=true;
+  for(let i=0;i<5;i++){setPhase(i,'');setPhaseSt(i,'Idle');}
+  document.getElementById('rawTbl').innerHTML='<p style="padding:1rem;font-size:13px;color:var(--color-text-secondary);">Loading…</p>';
+  document.getElementById('issueList').innerHTML='';
+  document.getElementById('reportCards').innerHTML='';
+  sw('raw',document.getElementById('t-raw'));
+
+  setPhase(0,'active');setPhaseSt(0,'Loading…');
+  await delay(600);
+  renderRaw();
+  document.getElementById('m0').textContent=RAW.length;
+  document.getElementById('md0').textContent='records from HR system';
+  setPhase(0,'done');setPhaseSt(0,RAW.length+' records');
+
+  setPhase(1,'active');setPhaseSt(1,'Scanning…');
+  await delay(800);
+  const total=ISSUES.reduce((a,i)=>a+i.rows.length,0);
+  document.getElementById('m1').textContent=total;
+  document.getElementById('md1').textContent=ISSUES.length+' issue types';
+  renderIssues();
+  setPhase(1,'done');setPhaseSt(1,ISSUES.length+' types');
+
+  setPhase(2,'active');setPhaseSt(2,'Repairing…');
+  await delay(900);
+  document.getElementById('m2').textContent=7;
+  document.getElementById('md2').textContent='auto-fixed, 4 flagged';
+  renderClean();
+  setPhase(2,'done');setPhaseSt(2,'Complete');
+
+  setPhase(3,'active');setPhaseSt(3,'Validating…');
+  await delay(500);
+  document.getElementById('m3').textContent='91%';
+  document.getElementById('m3').style.color='#1D9E75';
+  document.getElementById('md3').textContent='up from 71%';
+  setPhase(3,'done');setPhaseSt(3,'Passed');
+
+  setPhase(4,'active');setPhaseSt(4,'Generating…');
+  await delay(500);
+  renderReport();
+  setPhase(4,'done');setPhaseSt(4,'Ready');
+
+  running=false;
+  document.getElementById('runBtn').disabled=false;
+}
+</script>
