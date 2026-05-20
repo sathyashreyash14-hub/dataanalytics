@@ -1,0 +1,352 @@
+
+<h2 class="sr-only">Predictive Analytics Dashboard — interactive time-series forecasting with regression models, model evaluation, and trend visualization</h2>
+
+<style>
+  .pa-root { font-family: var(--font-sans); padding: 1.5rem 0; }
+  .pa-header { margin-bottom: 1.5rem; }
+  .pa-title { font-size: 22px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+  .pa-subtitle { font-size: 14px; color: var(--color-text-secondary); margin: 0; }
+  .pa-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
+  .pa-btn { padding: 6px 16px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  .pa-btn.active { background: var(--color-background-secondary); border-color: var(--color-border-primary); font-weight: 500; }
+  .pa-btn:hover { background: var(--color-background-secondary); }
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+  .metric-label { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+  .metric-delta { font-size: 12px; margin: 2px 0 0; }
+  .delta-pos { color: #1D9E75; }
+  .delta-neg { color: #D85A30; }
+  .chart-area { position: relative; width: 100%; height: 320px; margin-bottom: 1.5rem; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 1.5rem; font-size: 12px; color: var(--color-text-secondary); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 24px; height: 3px; border-radius: 2px; }
+  .legend-swatch.dashed { background: repeating-linear-gradient(90deg, #888 0, #888 4px, transparent 4px, transparent 8px); height: 2px; }
+  .section-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 10px; }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .slider-label { font-size: 13px; color: var(--color-text-secondary); width: 130px; flex-shrink: 0; }
+  .slider-val { font-size: 13px; font-weight: 500; min-width: 36px; text-align: right; color: var(--color-text-primary); }
+  .eval-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+  .eval-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px; }
+  .eval-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 6px; }
+  .eval-desc { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 10px; }
+  .eval-bar-bg { background: var(--color-background-secondary); border-radius: 4px; height: 8px; }
+  .eval-bar-fill { height: 8px; border-radius: 4px; transition: width 0.5s ease; }
+  .eval-nums { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-tertiary); margin-top: 4px; }
+  .residuals-area { position: relative; width: 100%; height: 160px; margin-bottom: 1.5rem; }
+  .insight-box { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 14px 16px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+  .insight-box strong { color: var(--color-text-primary); font-weight: 500; }
+  .tab-row { display: flex; gap: 0; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1.5rem; }
+  .tab { font-size: 13px; padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--color-text-secondary); margin-bottom: -1px; }
+  .tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); font-weight: 500; }
+</style>
+
+<div class="pa-root">
+  <div class="pa-header">
+    <h1 class="pa-title">Predictive Analytics</h1>
+    <p class="pa-subtitle">Historical data → regression models → future trend forecasting</p>
+  </div>
+
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:1.2rem;">
+    <span style="font-size:13px; color:var(--color-text-secondary);">Dataset:</span>
+    <div class="pa-controls" style="margin:0;">
+      <button class="pa-btn active" onclick="switchDataset('sales')">Monthly Sales</button>
+      <button class="pa-btn" onclick="switchDataset('temp')">Temperature</button>
+      <button class="pa-btn" onclick="switchDataset('stock')">Stock Index</button>
+    </div>
+    <span style="font-size:13px; color:var(--color-text-secondary); margin-left:8px;">Model:</span>
+    <div class="pa-controls" style="margin:0;">
+      <button class="pa-btn active" onclick="switchModel('linear')">Linear</button>
+      <button class="pa-btn" onclick="switchModel('poly')">Polynomial</button>
+      <button class="pa-btn" onclick="switchModel('moving')">Moving Avg</button>
+    </div>
+  </div>
+
+  <div class="slider-row" style="margin-bottom:1.2rem;">
+    <span class="slider-label"><i class="ti ti-calendar" style="font-size:15px;vertical-align:-2px;margin-right:4px;" aria-hidden="true"></i>Forecast periods</span>
+    <input type="range" id="forecastRange" min="3" max="18" step="1" value="6" style="flex:1;" oninput="updateForecast(this.value)">
+    <span class="slider-val" id="forecastVal">6</span>
+  </div>
+
+  <div class="metrics-grid" id="metricsGrid"></div>
+
+  <div class="tab-row">
+    <div class="tab active" onclick="switchTab('forecast', this)">Forecast</div>
+    <div class="tab" onclick="switchTab('residuals', this)">Residuals</div>
+    <div class="tab" onclick="switchTab('evaluation', this)">Model Evaluation</div>
+  </div>
+
+  <div id="tab-forecast">
+    <div class="legend-row" id="legendRow"></div>
+    <div class="chart-area"><canvas id="mainChart" role="img" aria-label="Time series chart with historical data, fitted trend line, and forecast with confidence interval"></canvas></div>
+  </div>
+  <div id="tab-residuals" style="display:none;">
+    <div class="residuals-area"><canvas id="residChart" role="img" aria-label="Residual plot showing model errors per time period"></canvas></div>
+    <p style="font-size:13px; color:var(--color-text-secondary); margin:0 0 1.5rem;">Residuals should scatter randomly around zero — a pattern here suggests the model is missing something.</p>
+  </div>
+  <div id="tab-evaluation" style="display:none;">
+    <div class="eval-grid" id="evalGrid"></div>
+  </div>
+
+  <div class="insight-box" id="insightBox"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATASETS = {
+  sales: {
+    label: 'Monthly Sales (units)',
+    unit: 'K units',
+    scale: 1000,
+    data: [42,45,41,48,52,55,50,58,63,61,67,70,68,75,78,80,85,82,90,95,91,98,104,107],
+    labels: ['Jan 22','Feb 22','Mar 22','Apr 22','May 22','Jun 22','Jul 22','Aug 22','Sep 22','Oct 22','Nov 22','Dec 22',
+             'Jan 23','Feb 23','Mar 23','Apr 23','May 23','Jun 23','Jul 23','Aug 23','Sep 23','Oct 23','Nov 23','Dec 23'],
+    color: '#185FA5', confColor: 'rgba(24,95,165,0.12)'
+  },
+  temp: {
+    label: 'Monthly Avg Temperature (°C)',
+    unit: '°C',
+    scale: 1,
+    data: [3,4,8,13,18,22,25,24,20,14,8,4,3,5,9,14,19,23,26,25,21,15,9,5],
+    labels: ['Jan 22','Feb 22','Mar 22','Apr 22','May 22','Jun 22','Jul 22','Aug 22','Sep 22','Oct 22','Nov 22','Dec 22',
+             'Jan 23','Feb 23','Mar 23','Apr 23','May 23','Jun 23','Jul 23','Aug 23','Sep 23','Oct 23','Nov 23','Dec 23'],
+    color: '#D85A30', confColor: 'rgba(216,90,48,0.12)'
+  },
+  stock: {
+    label: 'Stock Index (points)',
+    unit: 'pts',
+    scale: 1,
+    data: [4200,4350,4180,4420,4580,4610,4490,4720,4850,4790,4920,5010,4880,5100,5230,5190,5380,5420,5280,5510,5640,5590,5780,5920],
+    labels: ['Jan 22','Feb 22','Mar 22','Apr 22','May 22','Jun 22','Jul 22','Aug 22','Sep 22','Oct 22','Nov 22','Dec 22',
+             'Jan 23','Feb 23','Mar 23','Apr 23','May 23','Jun 23','Jul 23','Aug 23','Sep 23','Oct 23','Nov 23','Dec 23'],
+    color: '#1D9E75', confColor: 'rgba(29,158,117,0.12)'
+  }
+};
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let currentDataset = 'sales';
+let currentModel = 'linear';
+let forecastPeriods = 6;
+let mainChart = null, residChart = null;
+
+function linReg(y) {
+  const n = y.length;
+  let sumX=0,sumY=0,sumXY=0,sumX2=0;
+  for(let i=0;i<n;i++){sumX+=i;sumY+=y[i];sumXY+=i*y[i];sumX2+=i*i;}
+  const m=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);
+  const b=(sumY-m*sumX)/n;
+  return {m,b,predict:(x)=>m*x+b};
+}
+
+function polyReg(y,deg=2) {
+  const n=y.length;
+  const X=[],Y=y.slice();
+  for(let i=0;i<n;i++){const row=[];for(let d=0;d<=deg;d++)row.push(Math.pow(i,d));X.push(row);}
+  function matMul(A,B){const r=A.length,c=B[0].length,k=B.length,R=Array.from({length:r},()=>new Array(c).fill(0));for(let i=0;i<r;i++)for(let j=0;j<c;j++)for(let l=0;l<k;l++)R[i][j]+=A[i][l]*B[l][j];return R;}
+  function matT(A){return A[0].map((_,c)=>A.map(r=>r[c]));}
+  function matInv(A){const n=A.length,M=A.map(r=>[...r]),I=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0));for(let i=0;i<n;i++){let p=i;for(let j=i+1;j<n;j++)if(Math.abs(M[j][i])>Math.abs(M[p][i]))p=j;[M[i],M[p]]=[M[p],M[i]];[I[i],I[p]]=[I[p],I[i]];const d=M[i][i];for(let j=0;j<n;j++){M[i][j]/=d;I[i][j]/=d;}for(let k=0;k<n;k++)if(k!==i){const f=M[k][i];for(let j=0;j<n;j++){M[k][j]-=f*M[i][j];I[k][j]-=f*I[i][j];}}}return I;}
+  const Xt=matT(X),XtX=matMul(Xt,X),XtXi=matInv(XtX),XtY=matMul(Xt,Y.map(v=>[v]));
+  const coeffs=matMul(XtXi,XtY).map(r=>r[0]);
+  return {coeffs,predict:(x)=>coeffs.reduce((s,c,i)=>s+c*Math.pow(x,i),0)};
+}
+
+function movingAvg(y, w=4) {
+  const trend=[];
+  for(let i=0;i<y.length;i++){
+    const s=Math.max(0,i-w+1),slice=y.slice(s,i+1);
+    trend.push(slice.reduce((a,b)=>a+b,0)/slice.length);
+  }
+  const lastSlope=(trend[trend.length-1]-trend[trend.length-4])/3;
+  return {trend,predict:(x)=>trend[trend.length-1]+lastSlope*(x-y.length+1)};
+}
+
+function getModel(data) {
+  if(currentModel==='linear') return linReg(data);
+  if(currentModel==='poly') return polyReg(data,2);
+  return movingAvg(data,5);
+}
+
+function getFitted(data) {
+  const m=getModel(data);
+  return data.map((_,i)=>+m.predict(i).toFixed(2));
+}
+
+function getForecast(data,n) {
+  const m=getModel(data);
+  return Array.from({length:n},(_,i)=>+m.predict(data.length+i).toFixed(2));
+}
+
+function getStd(data, fitted) {
+  const res=data.map((v,i)=>v-fitted[i]);
+  const mean=res.reduce((a,b)=>a+b,0)/res.length;
+  return Math.sqrt(res.map(r=>(r-mean)**2).reduce((a,b)=>a+b,0)/(res.length-1));
+}
+
+function calcMetrics(data, fitted) {
+  const n=data.length,mean=data.reduce((a,b)=>a+b,0)/n;
+  const ss_res=data.map((v,i)=>(v-fitted[i])**2).reduce((a,b)=>a+b,0);
+  const ss_tot=data.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0);
+  const r2=1-ss_res/ss_tot;
+  const rmse=Math.sqrt(ss_res/n);
+  const mae=data.map((v,i)=>Math.abs(v-fitted[i])).reduce((a,b)=>a+b,0)/n;
+  const mape=data.map((v,i)=>Math.abs((v-fitted[i])/v)).reduce((a,b)=>a+b,0)/n*100;
+  return {r2,rmse,mae,mape};
+}
+
+function getNextLabels(startLabel, n) {
+  const parts=startLabel.split(' ');
+  let month=MONTH_NAMES.indexOf(parts[0]),year=parseInt(parts[1]);
+  const labels=[];
+  for(let i=0;i<n;i++){
+    month++;if(month>=12){month=0;year++;}
+    labels.push(MONTH_NAMES[month]+' '+year);
+  }
+  return labels;
+}
+
+function switchDataset(k) {
+  currentDataset=k;
+  document.querySelectorAll('.pa-btn').forEach(b=>{if(['Monthly Sales','Temperature','Stock Index'].some(t=>b.textContent.includes(t.split(' ')[0]))||['sales','temp','stock'].some(s=>b.onclick?.toString().includes(s))){}});
+  document.querySelectorAll('[onclick^="switchDataset"]').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes("'"+k+"'")));
+  render();
+}
+function switchModel(k) {
+  currentModel=k;
+  document.querySelectorAll('[onclick^="switchModel"]').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes("'"+k+"'")));
+  render();
+}
+function updateForecast(v){forecastPeriods=+v;document.getElementById('forecastVal').textContent=v;render();}
+function switchTab(name, el) {
+  ['forecast','residuals','evaluation'].forEach(t=>document.getElementById('tab-'+t).style.display='none');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).style.display='';
+  el.classList.add('active');
+}
+
+function fmt(v, unit, scale) {
+  if(scale>=1000) return (v/scale).toFixed(1)+' '+unit;
+  if(unit==='°C') return v.toFixed(1)+' '+unit;
+  return Math.round(v).toLocaleString()+' '+unit;
+}
+
+function render() {
+  const ds=DATASETS[currentDataset];
+  const data=ds.data, n=data.length;
+  const fitted=getFitted(data);
+  const forecast=getForecast(data,forecastPeriods);
+  const std=getStd(data,fitted);
+  const metrics=calcMetrics(data,fitted);
+  const forecastLabels=getNextLabels(ds.labels[ds.labels.length-1],forecastPeriods);
+  const allLabels=[...ds.labels,...forecastLabels];
+  const confUp=forecast.map(v=>+(v+1.64*std).toFixed(2));
+  const confLo=forecast.map(v=>+(v-1.64*std).toFixed(2));
+  const lastVal=data[data.length-1], firstForecast=forecast[0];
+  const change=((firstForecast-lastVal)/lastVal*100);
+
+  document.getElementById('metricsGrid').innerHTML=`
+    <div class="metric-card"><p class="metric-label">R² Score</p><p class="metric-value">${metrics.r2.toFixed(3)}</p><p class="metric-delta ${metrics.r2>0.9?'delta-pos':'delta-neg'}">${metrics.r2>0.9?'Excellent fit':'Moderate fit'}</p></div>
+    <div class="metric-card"><p class="metric-label">RMSE</p><p class="metric-value">${metrics.rmse<100?metrics.rmse.toFixed(1):Math.round(metrics.rmse).toLocaleString()}</p><p class="metric-delta" style="color:var(--color-text-tertiary);">Root mean sq. error</p></div>
+    <div class="metric-card"><p class="metric-label">MAPE</p><p class="metric-value">${metrics.mape.toFixed(1)}%</p><p class="metric-delta ${metrics.mape<5?'delta-pos':metrics.mape<15?'':''}" style="color:var(--color-text-tertiary);">Mean abs % error</p></div>
+    <div class="metric-card"><p class="metric-label">Next period</p><p class="metric-value">${fmt(firstForecast,ds.unit,ds.scale)}</p><p class="metric-delta ${change>=0?'delta-pos':'delta-neg'}">${change>=0?'↑':'↓'} ${Math.abs(change).toFixed(1)}% vs now</p></div>
+  `;
+
+  document.getElementById('legendRow').innerHTML=`
+    <div class="legend-item"><div class="legend-swatch" style="background:${ds.color};"></div><span>Historical</span></div>
+    <div class="legend-item"><div class="legend-swatch" style="background:${ds.color};opacity:0.5;"></div><span>Fitted trend</span></div>
+    <div class="legend-item"><div class="legend-swatch dashed"></div><span>Forecast</span></div>
+    <div class="legend-item"><div class="legend-swatch" style="background:${ds.confColor};height:10px;border:0.5px solid ${ds.color};border-radius:2px;width:20px;"></div><span>90% confidence</span></div>
+  `;
+
+  const paddedData=[...data,...new Array(forecastPeriods).fill(null)];
+  const paddedFitted=[...fitted,...new Array(forecastPeriods).fill(null)];
+  const paddedForecast=[...new Array(n-1).fill(null),data[n-1],...forecast];
+  const paddedUp=[...new Array(n-1).fill(null),data[n-1],...confUp];
+  const paddedLo=[...new Array(n-1).fill(null),data[n-1],...confLo];
+
+  if(mainChart){mainChart.destroy();}
+  const ctx=document.getElementById('mainChart').getContext('2d');
+  mainChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:allLabels,
+      datasets:[
+        {label:'Confidence (upper)',data:paddedUp,borderWidth:0,pointRadius:0,fill:'+1',backgroundColor:ds.confColor,tension:0.3},
+        {label:'Confidence (lower)',data:paddedLo,borderWidth:0,pointRadius:0,fill:false,backgroundColor:ds.confColor,tension:0.3},
+        {label:'Historical',data:paddedData,borderColor:ds.color,borderWidth:2,pointRadius:3,pointBackgroundColor:ds.color,fill:false,tension:0.3,spanGaps:false},
+        {label:'Fitted trend',data:paddedFitted,borderColor:ds.color,borderWidth:1.5,borderDash:[],pointRadius:0,fill:false,tension:0.3,borderDashOffset:0,borderOpacity:0.5,backgroundColor:'transparent',spanGaps:false,
+          segment:{borderColor:()=>ds.color+'88'}},
+        {label:'Forecast',data:paddedForecast,borderColor:ds.color,borderWidth:2,borderDash:[6,3],pointRadius:4,pointBackgroundColor:ds.color+'aa',fill:false,tension:0.3,spanGaps:false}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{label:(c)=>{if(c.raw===null)return null;const nm=c.dataset.label;if(nm.includes('Confidence'))return null;return nm+': '+Math.round(c.raw).toLocaleString();}},
+        filter:(item)=>item.raw!==null&&!item.dataset.label.includes('Confidence')
+      }},
+      scales:{
+        x:{ticks:{autoSkip:true,maxTicksLimit:8,font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'}},
+        y:{ticks:{callback:(v)=>Math.round(v).toLocaleString(),font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'}}
+      }
+    }
+  });
+
+  const residuals=data.map((v,i)=>v-fitted[i]);
+  if(residChart)residChart.destroy();
+  const ctx2=document.getElementById('residChart').getContext('2d');
+  residChart=new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels:ds.labels,
+      datasets:[
+        {label:'Residual',data:residuals,backgroundColor:residuals.map(r=>r>=0?ds.color+'aa':'#D85A30aa'),borderRadius:2}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{autoSkip:true,maxTicksLimit:8,font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'}},
+        y:{ticks:{font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'},title:{display:true,text:'Error (actual − fitted)',font:{size:11}}}
+      }
+    }
+  });
+
+  const modelNames={'linear':'Linear Regression','poly':'Polynomial (degree 2)','moving':'Moving Average'};
+  document.getElementById('evalGrid').innerHTML=`
+    <div class="eval-card">
+      <p class="eval-name">R² — Coefficient of Determination</p>
+      <p class="eval-desc">Proportion of variance explained by the model. Closer to 1.0 is better.</p>
+      <div class="eval-bar-bg"><div class="eval-bar-fill" style="width:${(metrics.r2*100).toFixed(1)}%;background:${ds.color};"></div></div>
+      <div class="eval-nums"><span>0</span><span>${metrics.r2.toFixed(3)}</span><span>1.0</span></div>
+    </div>
+    <div class="eval-card">
+      <p class="eval-name">MAPE — Mean Absolute % Error</p>
+      <p class="eval-desc">Average percentage error. Below 10% is considered excellent.</p>
+      <div class="eval-bar-bg"><div class="eval-bar-fill" style="width:${Math.min(100,metrics.mape*4).toFixed(1)}%;background:${metrics.mape<5?'#1D9E75':metrics.mape<15?'#BA7517':'#D85A30'};"></div></div>
+      <div class="eval-nums"><span>0%</span><span>${metrics.mape.toFixed(1)}%</span><span>25%+</span></div>
+    </div>
+    <div class="eval-card">
+      <p class="eval-name">MAE — Mean Absolute Error</p>
+      <p class="eval-desc">Average absolute deviation between actual and predicted values.</p>
+      <div class="eval-bar-bg"><div class="eval-bar-fill" style="width:${Math.min(100,(metrics.mae/Math.max(...data))*200).toFixed(1)}%;background:${ds.color};"></div></div>
+      <div class="eval-nums"><span>0</span><span>${metrics.mae<100?metrics.mae.toFixed(1):Math.round(metrics.mae).toLocaleString()}</span><span>High</span></div>
+    </div>
+    <div class="eval-card">
+      <p class="eval-name">RMSE — Root Mean Squared Error</p>
+      <p class="eval-desc">Penalizes large errors more. Lower is better; compare relative to data scale.</p>
+      <div class="eval-bar-bg"><div class="eval-bar-fill" style="width:${Math.min(100,(metrics.rmse/Math.max(...data))*200).toFixed(1)}%;background:${ds.color};"></div></div>
+      <div class="eval-nums"><span>0</span><span>${metrics.rmse<100?metrics.rmse.toFixed(1):Math.round(metrics.rmse).toLocaleString()}</span><span>High</span></div>
+    </div>
+  `;
+
+  const modelLabel=modelNames[currentModel];
+  const trend=forecast[forecast.length-1]>forecast[0]?'upward':'downward';
+  document.getElementById('insightBox').innerHTML=`
+    <strong>Model insight</strong> — Using <strong>${modelLabel}</strong> on the <strong>${ds.label}</strong> dataset, the model achieves an R² of <strong>${metrics.r2.toFixed(3)}</strong> and a MAPE of <strong>${metrics.mape.toFixed(1)}%</strong>, indicating a <strong>${metrics.r2>0.9?'strong':'moderate'}</strong> fit. The ${forecastPeriods}-period forecast shows a <strong>${trend}</strong> trend, reaching an estimated <strong>${fmt(forecast[forecast.length-1],ds.unit,ds.scale)}</strong> with a 90% confidence band of ±${fmt(1.64*std,ds.unit,ds.scale)}. Residuals should ideally be randomly distributed — any visible pattern suggests a more complex model may improve accuracy.
+  `;
+}
+
+render();
+</script>
